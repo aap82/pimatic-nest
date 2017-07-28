@@ -1,24 +1,23 @@
-{ "name": "pimatic-plugin-template",
+{
+  "name": "pimatic-nest",
   "description": "The plugin description",
-  "author": "Your Name <you@example.com> (http://your-website)",
-  "main": "my-plugin",
+  "author": "aap82",
+  "main": "nest",
   "files": [
-    "my-plugin.coffee",
+    "nest.coffee",
     "README.md",
-    "my-plugin-config-schema.coffee"
+    "nest-config-schema.coffee"
   ],
-  "version": "0.8.0",
-  "homepage": "http://your-plugin-website",
+  "version": "0.1.0",
   "private": true,
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/pimatic/pimatic-plugin-template.git"
-  },
-  "configSchema": "my-plugin-config-schema.coffee",
+
+  "configSchema": "nest-config-schema.coffee",
   "dependencies": {
+    "firebase": "1.1.3",
+    "param-case": "^2.1.1"
   },
   "peerDependencies": {
-    "pimatic": "0.8.*"
+    "pimatic": "^0.9"
   },
   "engines": {
     "node": ">0.8.x",
