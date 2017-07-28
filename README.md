@@ -3,7 +3,7 @@
 Nest Plugin for <a href="https://pimatic.org">Pimatic</a> using old version of Firebase.
 
 ##Nest Token
-You need to obtain a nest api token for authentication using firebase.
+You need to obtain a nest api token for authentication using firebase.  If you have on already, continue on to `Setup`
 
 First start by signing up for a Nest developer account. Then sign in.
     
@@ -32,24 +32,30 @@ Then click copy the Authorization URL and in a separate browser, navigate to it.
 Now, with the Product ID, Product Secret and PinCode, you can obtain a token by executing the following in a terminal:
      
      curl -X POST \
-       -d "code=AUTH_CODE&client_id=PRODUCT_ID&client_secret=PRODUCT_SECRET&grant_type=authorization_code" \
+       -d "code=PIN_CODE&client_id=PRODUCT_ID&client_secret=PRODUCT_SECRET&grant_type=authorization_code" \
        "https://api.home.nest.com/oauth2/access_token"
      
     
+Replacing the PIN_CODE, PRODUCT_ID, and PRODUCT_SECRET with your own.
+    
+After executing, you should get a response like:
+    
+    {
+        "access_token":"YOUR-NEST-API-TOKEN",
+        "expires_in":315360000
+    }
+    
 
-
-
+No you can use the `"access_token"` below.
 
 
 ##SETUP
-
-  
 
 edit the pimatic `config.json` file, adding an entry in the `plugins` section like so:
  
     {
         "plugin": "nest",
-        "token": "YOUR-NEST-API-TOKEN-HERE"     
+        "token": "YOUR-NEST-API-TOKEN"     
     }
 
 
