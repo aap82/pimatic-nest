@@ -22,7 +22,7 @@ module.exports = (env) ->
     _hvac_state: null
     _is_locked: null
     _is_online: null
-    _previous_hvac_state: null
+#    _previous_hvac_state: null
     _target_temperature: null
 
 
@@ -37,7 +37,7 @@ module.exports = (env) ->
     getHvac_state: -> Promise.resolve(@_hvac_state)
     getIs_locked: -> Promise.resolve(@_is_locked)
     getIs_online: ->  Promise.resolve(@_is_online)
-    getPrevious_hvac_state: -> Promise.resolve(@_previous_hvac_state)
+#    getPrevious_hvac_state: -> Promise.resolve(@_previous_hvac_state)
     getTarget_temperature: ->  Promise.resolve(@_target_temperature)
 #
 
@@ -68,6 +68,16 @@ module.exports = (env) ->
       newTemp = parseFloat(temp)
       @updateNest("target_temperature_#{@unit}", newTemp).then(=> return Promise.resolve())
 
+    updateNest: (attr, value) =>
+      assert(@_is_online)
+      assert(value isnt null)
+      @thermostat.child(attr).set(value)
+      return Promise.resolve()
+
+    destroy: () ->
+      @thermostat.ref().off 'child_changed', @handleUpdate
+      super()
+
 
 
     constructor: (@config, @plugin) ->
@@ -90,45 +100,26 @@ module.exports = (env) ->
       .catch (err) =>
         env.logger.error(err)
 
+    fetchData: =>
+      return new Promise (resolve) =>
+        @thermostat.ref().once 'value', ((snap) => resolve(snap.val()))
 
     init: (data) =>
       @updateState(key, value) for key, value of data when key in @plugin.attrNames
       @thermostat.ref().on 'child_changed', @handleUpdate
       return Promise.resolve()
 
-
     handleUpdate: (update) =>
       key = update.name()
       return unless key in @plugin.attrNames
       @updateState(key, update.val())
-
+      return
 
     updateState: (key, value) ->
       attr = if key.includes("temperature") then key.substring(0, key.length-2) else key
       return unless @["_#{attr}"] isnt value
       @["_#{attr}"] = value
       @emit attr, value
-
-    updateNest: (attr, value) =>
-      assert(@_is_online)
-      assert(value isnt null)
-      @thermostat.child(attr).set(value)
-      return Promise.resolve()
-
-
-
-    fetchData: =>
-      return new Promise (resolve) =>
-        @thermostat.ref().once 'value', (snap) =>
-          resolve(snap.val())
-
-
-
-    destroy: () ->
-      @thermostat.ref().off 'child_changed', @handleUpdate
-      super()
-
-
-
+      return
 
   return NestThermostat

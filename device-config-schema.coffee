@@ -14,6 +14,3 @@ module.exports =
       device_id:
         description: "The Nest API thermostat id"
         type: "string"
-      structure_id:
-        description: "Structure ID for the thermostat"
-        type: "string"
