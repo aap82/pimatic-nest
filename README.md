@@ -4,6 +4,7 @@ pimatic-nest
 
 Nest Plugin for <a href="https://pimatic.org">Pimatic</a> using old version of Firebase.
 
+
 Nest Token
 ===================
 You need to obtain a nest api token for authentication using firebase.  If you have on already, continue on to `Setup`
@@ -52,8 +53,23 @@ After executing, you should get a response like:
 No you can use the `"access_token"` below.
 
 
-##SETUP
+Installation & Setup
+====================
+first stop pimatic with either:
 
+    sudo service pimatic stop
+or
+
+    sudo systemctl stop pimatic.service
+    
+From the root of your pimatic app installation folder
+    
+    cd node_modules
+    git clone https://github.com/aap82/pimatic-nest.git
+    cd pimatic-nest
+    npm install
+    
+    
 edit the pimatic `config.json` file, adding an entry in the `plugins` section like so:
  
     {
