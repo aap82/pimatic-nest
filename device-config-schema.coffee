@@ -1,11 +1,11 @@
 module.exports =
   title: "pimatic-nest device config schemas"
-  NestStructure:
-    title: "Nest Location"
+  NestPresence:
+    title: "Nest Home/Away Status"
     type: "object"
     properties:
       structure_id:
-        description: "Structure ID for the thermostat"
+        description: "Structure ID for the Presence Sensor"
         type: "string"
   NestThermostat:
     title: "Nest Thermostat"
