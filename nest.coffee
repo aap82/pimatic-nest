@@ -7,9 +7,7 @@ module.exports = (env) ->
   deviceConfigDef = require('./device-config-schema')
   NestThermostat = require('./devices/nest-thermostat')(env)
   NestPresence = require('./devices/nest-presence')(env)
-  {getAttributeNames} = require('./devices/nest-thermostat-attributes')
-
-
+  {getAttributeNames} = require('./devices/nest-thermostat-attributes')s
 
   class NestPlugin extends env.plugins.Plugin
     init: (app, @framework, @config) =>
@@ -60,7 +58,6 @@ module.exports = (env) ->
         env.logger.info "Checking for new structures"
         nestPresences = (dev.structure_id for dev in @framework.deviceManager.devicesConfig when dev.class is 'NestPresence')
         for key, structure of structures.val() when key not in nestPresences
-          @structures[key] = structures.child(key).child('away')
           config =
             class: "NestPresence"
             id: "nest-presence-#{paramCase(structure.name)}"
