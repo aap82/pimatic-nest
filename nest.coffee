@@ -9,6 +9,7 @@ module.exports = (env) ->
   {getAttributeNames} = require('./devices/nest-thermostat-attributes')
 
 
+
   class NestPlugin extends env.plugins.Plugin
     init: (app, @framework, @config) =>
       env.logger.info("Initializing Nest Plugin")
@@ -31,14 +32,14 @@ module.exports = (env) ->
       env.logger.info "Starting Nest Discovery"
       @nestApi.then =>
         @discoverStructures()
-      .then () =>
+        .then () =>
         @discoverThermostats()
-      .catch (err) =>
+        .catch (err) =>
         env.logger.error(err)
 
 
     connect: (config) =>
-      console.log 'connecting'
+      env.logger.info 'Connecting to Nest Firebase'
       connectPromise = new Promise (resolve, reject) =>
         @client.authWithCustomToken config.token, (error) =>
           if (error)
