@@ -118,7 +118,7 @@ module.exports = (env) ->
 
 
     destroy: () ->
-      @thermostat.ref().off()
+      @thermostat.ref().off 'child_changed', @handleUpdate
       super()
 
 
