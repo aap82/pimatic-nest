@@ -12,7 +12,6 @@ module.exports = (env) ->
       @_presence = null
       @onNestUpdates = null
 
-
       @plugin.nestApi.then =>
         @init()
         return Promise.resolve()
@@ -20,16 +19,19 @@ module.exports = (env) ->
         env.logger.error(err)
 
     init: =>
-      @onNestUpdates = @plugin.structures
+      @onNestUpdates = @plugin.client
+        .child('structures')
         .child(@config.structure_id)
-        .child('away').ref()
-        .on 'value', ((update) => @_setPresence(update.val() is 'home'))
+        .child('away')
+        .ref().on 'value', (update) =>
+          @_setPresence(update.val() is 'home')
+
 
     destroy: () ->
-      @plugin.structures
+      @plugin.client.child('structures')
         .child(@config.structure_id)
-        .child('away').ref()
-        .off('value', @onNestUpdates)
+        .child('away')
+        .ref().off('value', @onNestUpdates)
       super()
 
 

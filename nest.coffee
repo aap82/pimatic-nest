@@ -34,19 +34,9 @@ module.exports = (env) ->
 
       @framework.deviceManager.on "discover", @discover
 
-    discover: =>
-      env.logger.info "Starting Nest Discovery"
-      @nestApi.then =>
-        @discoverStructures()
-      .then () =>
-        @discoverThermostats()
-      .catch (err) =>
-        env.logger.error(err)
-
-
     connect: (config) =>
       env.logger.info 'Connecting to Nest Firebase'
-      connectPromise = new Promise (resolve, reject) =>
+      return new Promise (resolve, reject) =>
         @client.authWithCustomToken config.token, (error) =>
           if (error)
             env.logger.error  'Error in connecting Firebase Socket.', error
@@ -54,57 +44,49 @@ module.exports = (env) ->
           else
             env.logger.info  'Firebase socket is connected.'
             return resolve()
-      return connectPromise.then(@fetchData)
 
-    fetchData: =>
-      return new Promise (resolve, reject) =>
-        @client.once 'value', (snapshot) =>
-          @thermostats = snapshot.child('devices/thermostats')
-          @structures = snapshot.child('structures')
-          return resolve(snapshot)
+    discover: =>
+      env.logger.info "Starting Nest Discovery"
+      @nestApi.then(@fetchData).then (snapshot) =>
+        structurePromise = @discoverStructures(snapshot.child('structures'))
+        thermostatPromise = @discoverThermostats(snapshot.child('devices/thermostats'))
+        Promise.all [structurePromise, thermostatPromise]
+      .catch (err) =>
+        env.logger.error(err)
 
 
-    discoverStructures: =>
-      env.logger.info "Checking for new structures"
-      nestStructures = {}
-      for id, dev of @framework.deviceManager.devices
-        if dev instanceof NestPresence
-          nestStructures[dev.config.structure_id] = dev
-      for key, structure of @structures.val()
-        if not nestStructures[key]
+    discoverStructures: (structures) =>
+      return new Promise (resolve) =>
+        env.logger.info "Checking for new structures"
+        nestPresences = (dev.structure_id for dev in @framework.deviceManager.devicesConfig when dev.class is 'NestPresence')
+        for key, structure of structures.val() when key not in nestPresences
+          @structures[key] = structures.child(key).child('away')
           config =
             class: "NestPresence"
             id: "nest-presence-#{paramCase(structure.name)}"
             name: structure.name
             structure_id: structure.structure_id
           @framework.deviceManager.discoveredDevice 'nest-presence', "#{config.name}", config
+        return resolve()
 
-
-      return
-
-    discoverThermostats: =>
-      env.logger.info "Checking for new Thermostats"
-      nestThermostats = {}
-      for id, dev of @framework.deviceManager.devices
-        if dev instanceof NestThermostat
-          nestThermostats[dev.config.device_id] = dev
-
-      for key, device of @thermostats.val()
-        if not nestThermostats[key]
+    discoverThermostats: (thermostats) =>
+      return new Promise (resolve) =>
+        env.logger.info "Checking for new Thermostats"
+        nestThermostats = (dev.device_id for dev in @framework.deviceManager.devicesConfig when dev.class is 'NestThermostat')
+        for key, thermostat of thermostats.val() when key not in nestThermostats
           config =
             class: "NestThermostat"
-            id: "nest-thermostat-#{paramCase(device.name)}"
-            name: device.name
-            device_id: device.device_id
-            structure_id: device.structure_id
+            id: "nest-thermostat-#{paramCase(thermostat.name)}"
+            name: thermostat.name
+            device_id: thermostat.device_id
+            structure_id: thermostat.structure_id
           @framework.deviceManager.discoveredDevice 'nest-thermostat', "#{config.name}", config
+        return resolve()
 
-
-
-
-      return
-
-
+    fetchData: =>
+      return new Promise (resolve) =>
+        @client.once 'value', (snapshot) =>
+          return resolve(snapshot)
 
 
 

@@ -5,6 +5,8 @@ module.exports = (env) ->
   {attributes} = require './nest-thermostat-attributes'
   actions = require './nest-thermostat-actions'
 
+  unitChange = (unit) -> if unit is 'c' then 0.5 else 1
+
   class NestThermostat extends env.devices.Device
     attributes: attributes
     actions: actions
@@ -22,8 +24,6 @@ module.exports = (env) ->
     _is_online: null
     _previous_hvac_state: null
     _target_temperature: null
-
-
 
 
     getAmbient_temperature: ->  Promise.resolve(@_ambient_temperature)
@@ -55,6 +55,21 @@ module.exports = (env) ->
       assert(mode in ["heat", "cool", "off"])
       @updateNest("hvac_mode", mode).then(=>return Promise.resolve())
 
+    increment: ->
+      newTemp = @_target_temperature + unitChange(@unit)
+      @changeTemperatureTo("#{newTemp}")
+
+    decrement: ->
+      newTemp = @_target_temperature - unitChange(@unit)
+      @changeTemperatureTo("#{newTemp}")
+
+    changeTemperatureTo: (temp) ->
+      assert(@_hvac_mode in ['heat', 'cool'])
+      newTemp = parseFloat(temp)
+      @updateNest("target_temperature_#{@unit}", newTemp).then(=> return Promise.resolve())
+
+
+
     constructor: (@config, @plugin) ->
       @id = @config.id
       @name = @config.name
@@ -68,17 +83,18 @@ module.exports = (env) ->
 
 
       @plugin.nestApi.then =>
-        @init()
-        return Promise.resolve()
+        @thermostat = @plugin.client.child('devices/thermostats').child(@config.device_id)
+        return
+      .then(@fetchData)
+      .then(@init)
       .catch (err) =>
         env.logger.error(err)
 
 
-
-    init: =>
-      @thermostat = @plugin.thermostats.child(@config.device_id)
-      @updateState(key, value) for key, value of @thermostat.val() when key in @plugin.attrNames
+    init: (data) =>
+      @updateState(key, value) for key, value of data when key in @plugin.attrNames
       @thermostat.ref().on 'child_changed', @handleUpdate
+      return Promise.resolve()
 
 
     handleUpdate: (update) =>
@@ -99,27 +115,19 @@ module.exports = (env) ->
       @thermostat.child(attr).set(value)
       return Promise.resolve()
 
-    unitChange: -> if @unit is 'c' then 0.5 else 1
 
 
-    increment: ->
-      newTemp = @_target_temperature + @unitChange()
-      @changeTemperatureTo("#{newTemp}")
-
-    decrement: ->
-      newTemp = @_target_temperature - @unitChange()
-      @changeTemperatureTo("#{newTemp}")
-
-    changeTemperatureTo: (temp) ->
-      assert(@_hvac_mode in ['heat', 'cool'])
-      newTemp = parseFloat(temp)
-      @updateNest("target_temperature_#{@unit}", newTemp).then(=> return Promise.resolve())
+    fetchData: =>
+      return new Promise (resolve) =>
+        @thermostat.ref().once 'value', (snap) =>
+          resolve(snap.val())
 
 
 
     destroy: () ->
       @thermostat.ref().off 'child_changed', @handleUpdate
       super()
+
 
 
 
