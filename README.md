@@ -1,9 +1,11 @@
 
-#pimatic-nest
+pimatic-nest
+===================
 
 Nest Plugin for <a href="https://pimatic.org">Pimatic</a> using old version of Firebase.
 
-##Nest Token
+Nest Token
+===================
 You need to obtain a nest api token for authentication using firebase.  If you have on already, continue on to `Setup`
 
 First start by signing up for a Nest developer account. Then sign in.
