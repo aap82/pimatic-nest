@@ -12,24 +12,5 @@ module.exports =
       description: "Token required for Firebase Access"
       type: "string"
       default: ""
-    structures:
-      description: "Nest Structures (i.e. Locations)"
-      type: "array"
-      format: "table"
-      default: []
-      required: no
-      items:
-        type: "object"
-        properties:
-          structure_id:
-            description: "ID of Location"
-            type: "string"
-            required: no
-          name:
-            description: "Name of Location"
-            type: "string"
-            required: no
-
-
 
 

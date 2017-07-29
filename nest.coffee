@@ -6,6 +6,7 @@ module.exports = (env) ->
 
   deviceConfigDef = require('./device-config-schema')
   NestThermostat = require('./devices/nest-thermostat')(env)
+  NestPresence = require('./devices/nest-presence')(env)
   {getAttributeNames} = require('./devices/nest-thermostat-attributes')
 
 
@@ -24,6 +25,11 @@ module.exports = (env) ->
       @framework.deviceManager.registerDeviceClass "NestThermostat", {
         configDef: deviceConfigDef.NestThermostat,
         createCallback: (config) => new NestThermostat(config, @)
+      }
+
+      @framework.deviceManager.registerDeviceClass "NestPresence", {
+        configDef: deviceConfigDef.NestPresence,
+        createCallback: (config) => new NestPresence(config, @)
       }
 
       @framework.deviceManager.on "discover", @discover
@@ -60,16 +66,20 @@ module.exports = (env) ->
 
     discoverStructures: =>
       env.logger.info "Checking for new structures"
-      structuresExisting = (structure.structure_id for structure in @config.structures)
-      for key, val of @structures.val() when key not in structuresExisting
-        @config.structures.push {
-          structure_id: val.structure_id
-          name: val.name
-        }
-        @framework.deviceManager.discoverMessage(
-          'pimatic-nest',
-          "Adding new structure with id #{val.structure_id} and name #{val.name} to plugin configuration."
-        )
+      nestStructures = {}
+      for id, dev of @framework.deviceManager.devices
+        if dev instanceof NestPresence
+          nestStructures[dev.config.structure_id] = dev
+      for key, structure of @structures.val()
+        if not nestStructures[key]
+          config =
+            class: "NestPresence"
+            id: "nest-presence-#{paramCase(structure.name)}"
+            name: structure.name
+            structure_id: structure.structure_id
+          @framework.deviceManager.discoveredDevice 'nest-presence', "#{config.name}", config
+
+
       return
 
     discoverThermostats: =>
@@ -87,7 +97,7 @@ module.exports = (env) ->
             name: device.name
             device_id: device.device_id
             structure_id: device.structure_id
-          @framework.deviceManager.discoveredDevice 'pimatic-nest', "#{config.name}", config
+          @framework.deviceManager.discoveredDevice 'nest-thermostat', "#{config.name}", config
 
 
 

@@ -20,9 +20,10 @@ module.exports = (env) ->
     _hvac_state: null
     _is_locked: null
     _is_online: null
+    _previous_hvac_state: null
     _target_temperature: null
-    _target_temperature_high: null
-    _target_temperature_low: null
+
+
 
 
     getAmbient_temperature: ->  Promise.resolve(@_ambient_temperature)
@@ -36,10 +37,9 @@ module.exports = (env) ->
     getHvac_state: -> Promise.resolve(@_hvac_state)
     getIs_locked: -> Promise.resolve(@_is_locked)
     getIs_online: ->  Promise.resolve(@_is_online)
+    getPrevious_hvac_state: -> Promise.resolve(@_previous_hvac_state)
     getTarget_temperature: ->  Promise.resolve(@_target_temperature)
-    getTarget_temperature_high: ->  Promise.resolve(@_target_temperature_high)
-    getTarget_temperature_low: ->  Promise.resolve(@_target_temperature_low)
-
+#
 
     setToCool: ->
       @setHVACModeTo("cool")
@@ -55,32 +55,11 @@ module.exports = (env) ->
       assert(mode in ["heat", "cool", "off"])
       @updateNest("hvac_mode", mode).then(=>return Promise.resolve())
 
-
-
-    unitChange: -> if @unit is 'c' then 0.5 else 1
-
-
-    increment: ->
-      newTemp = @_target_temperature + @unitChange()
-      @changeTemperatureTo("#{newTemp}")
-
-    decrement: ->
-      newTemp = @_target_temperature - @unitChange()
-      @changeTemperatureTo("#{newTemp}")
-
-    changeTemperatureTo: (temp) ->
-      assert(@_hvac_mode in ['heat', 'cool'])
-      newTemp = parseFloat(temp)
-      @updateNest("target_temperature_#{@unit}", newTemp).then(=> return Promise.resolve())
-
-
-
-
-
     constructor: (@config, @plugin) ->
       @id = @config.id
       @name = @config.name
       super()
+
       @unit = @plugin.config.unit
       @thermostat = null
 
@@ -91,15 +70,14 @@ module.exports = (env) ->
       @plugin.nestApi.then =>
         @init()
         return Promise.resolve()
-        .catch (err) =>
+      .catch (err) =>
         env.logger.error(err)
 
 
 
     init: =>
-      therm = @plugin.thermostats.child(@config.device_id)
-      @updateState(key, value) for key, value of therm.val() when key in @plugin.attrNames
-      @thermostat = therm.ref()
+      @thermostat = @plugin.thermostats.child(@config.device_id)
+      @updateState(key, value) for key, value of @thermostat.val() when key in @plugin.attrNames
       @thermostat.ref().on 'child_changed', @handleUpdate
 
 
@@ -121,14 +99,23 @@ module.exports = (env) ->
       @thermostat.child(attr).set(value)
       return Promise.resolve()
 
+    unitChange: -> if @unit is 'c' then 0.5 else 1
 
 
+    increment: ->
+      newTemp = @_target_temperature + @unitChange()
+      @changeTemperatureTo("#{newTemp}")
+
+    decrement: ->
+      newTemp = @_target_temperature - @unitChange()
+      @changeTemperatureTo("#{newTemp}")
+
+    changeTemperatureTo: (temp) ->
+      assert(@_hvac_mode in ['heat', 'cool'])
+      newTemp = parseFloat(temp)
+      @updateNest("target_temperature_#{@unit}", newTemp).then(=> return Promise.resolve())
 
 
-
-
-    changeStateTo: ->
-      return Promise.resolve()
 
     destroy: () ->
       @thermostat.ref().off()
