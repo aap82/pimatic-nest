@@ -32,9 +32,9 @@ module.exports = (env) ->
       env.logger.info "Starting Nest Discovery"
       @nestApi.then =>
         @discoverStructures()
-        .then () =>
+      .then () =>
         @discoverThermostats()
-        .catch (err) =>
+      .catch (err) =>
         env.logger.error(err)
 
 
