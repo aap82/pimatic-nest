@@ -87,9 +87,8 @@ module.exports = (env) ->
             name: device.name
             device_id: device.device_id
             structure_id: device.structure_id
-          @framework.deviceManager.discoveredDevice(
-            'pimatic-nest', "#{config.name}", config
-          )
+          @framework.deviceManager.discoveredDevice 'pimatic-nest', "#{config.name}", config
+
 
 
 
