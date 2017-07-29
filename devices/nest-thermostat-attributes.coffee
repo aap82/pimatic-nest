@@ -5,18 +5,6 @@ attributes =
     type: "number"
     discrete: true
     unit: "°"
-  away_temperature_high:
-    label: "Away Temp High"
-    description: "The temp that should be set"
-    type: "number"
-    discrete: true
-    unit: "°"
-  away_temperature_low:
-    label: "Away Temp Low"
-    description: "The temp that should be set"
-    type: "number"
-    discrete: true
-    unit: "°"
   can_cool:
     label: "Can Cool?"
     description: "If unit has ability to cool"
@@ -25,12 +13,28 @@ attributes =
     label: "Can Heat?"
     description: "If unit has ability to heat"
     type: "boolean"
+  eco_temperature_high:
+    label: "Away Temp High"
+    description: "The temp that should be set"
+    type: "number"
+    discrete: true
+    unit: "°"
+  eco_temperature_low:
+    label: "Away Temp Low"
+    description: "The temp that should be set"
+    type: "number"
+    discrete: true
+    unit: "°"
   humidity:
     label: "Humidity"
     description: "Current Humidity"
     type: "number"
     discrete: true
     unit: "%"
+  has_leaf:
+    label: "Leaf"
+    description: "thermostat should show a leaf"
+    type: "boolean"
   hvac_mode:
     label: "Mode"
     description: "Thermostat Mode"
@@ -41,6 +45,9 @@ attributes =
     description: "Thermostat State"
     type: "string"
     enum: ["off", "heating", "cooling"]
+  is_locked:
+    description: "Lock State of the Thermostat"
+    type: "boolean"
   is_online:
     label: "Can Heat?"
     description: "If unit has ability to heat"
