@@ -7,7 +7,8 @@ module.exports = (env) ->
   deviceConfigDef = require('./device-config-schema')
   NestThermostat = require('./devices/nest-thermostat')(env)
   NestPresence = require('./devices/nest-presence')(env)
-  {getAttributeNames} = require('./devices/nest-thermostat-attributes')s
+  NestActionProvider = require('./actions/nest-actions')(env)
+  {getAttributeNames} = require('./devices/nest-thermostat-attributes')
 
   class NestPlugin extends env.plugins.Plugin
     init: (app, @framework, @config) =>
@@ -29,7 +30,7 @@ module.exports = (env) ->
         configDef: deviceConfigDef.NestPresence,
         createCallback: (config) => new NestPresence(config, @)
       }
-
+#      @framework.ruleManager.addActionProvider(new NestActionProvider(@framework, @))
       @framework.deviceManager.on "discover", @discover
 
     connect: (config) =>
@@ -76,7 +77,6 @@ module.exports = (env) ->
             id: "nest-thermostat-#{paramCase(thermostat.name)}"
             name: thermostat.name
             device_id: thermostat.device_id
-            structure_id: thermostat.structure_id
           @framework.deviceManager.discoveredDevice 'nest-thermostat', "#{config.name}", config
         return resolve()
 

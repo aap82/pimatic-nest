@@ -10,7 +10,9 @@ module.exports = (env) ->
       @name = @config.name
       super()
       @_presence = null
+      @nestPresence = null
       @onNestUpdates = null
+
 
       @plugin.nestApi.then =>
         @init()
@@ -19,19 +21,17 @@ module.exports = (env) ->
         env.logger.error(err)
 
     init: =>
-      @onNestUpdates = @plugin.client
+      @nestPresence = @plugin.client
         .child('structures')
         .child(@config.structure_id)
         .child('away')
-        .ref().on 'value', (update) =>
-          @_setPresence(update.val() is 'home')
+
+      @onNestUpdates = @nestPresence.ref().on 'value', (update) =>
+        @_setPresence(update.val() is 'home')
 
 
     destroy: () ->
-      @plugin.client.child('structures')
-        .child(@config.structure_id)
-        .child('away')
-        .ref().off('value', @onNestUpdates)
+      @nestPresence.ref().off('value', @onNestUpdates)
       super()
 
 

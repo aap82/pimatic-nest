@@ -52,11 +52,11 @@ attributes =
     label: "Can Heat?"
     description: "If unit has ability to heat"
     type: "boolean"
-  previous_hvac_state:
-    label: "Previous State"
-    description: "The previous HVAC State"
-    type: "string"
-    enum: ["heat-cool", "heat", "cool", "eco", "off"]
+#  previous_hvac_state:
+#    label: "Previous State"
+#    description: "The previous HVAC State"
+#    type: "string"
+#    enum: ["heat-cool", "heat", "cool", "eco", "off"]
   target_temperature:
     label: "Target Temp"
     description: "The temp that should be set"
