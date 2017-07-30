@@ -79,9 +79,33 @@ edit the pimatic `config.json` file, adding an entry in the `plugins` section li
 
 
 
-Now head over to the `DEVICES` section of the front-end app, and click on `DISCOVER DEVICES`
+Restart pimatic, and head over to the `DEVICES` section of the front-end app, and click on `DISCOVER DEVICES`
 
-You should see your newly discovered Nest Thermostats.
+Devices
+====================
+You should see the two types of devices provided by this plugin **NestThermostat** and **NestPresence.**
+
+### NEST THERMOSTAT ###
+
+_**It is required that you <a href="https://nest.com/support/article/How-can-I-lock-Nest-so-that-it-can-only-be-adjusted-within-a-certain-temperature-range">LOCK</a> any Nest Thermostat you wish to control via pimatic.**_
+
+
+
+
+
+
+
+ 
+
+
+
+THERMOSTATS
+
+**IT**
+
+NestPresence is the the **Home/Away** status of your nest location (also known as a structure).
+
+
 
 
 

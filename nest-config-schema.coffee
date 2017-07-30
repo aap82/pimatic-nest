@@ -4,13 +4,14 @@ module.exports =
   title: "Nest Plugin Config Options"
   type: "object"
   properties:
-    unit:
-      description: "Unit for Temperature Values"
-      default: "f"
-      enum: ["c", "f"]
     token:
       description: "Token required for Firebase Access"
       type: "string"
       default: ""
+    displayTempScale:
+      description: "Display either F or C after temperature values"
+      type: "boolean"
+      default: false
+
 
 
