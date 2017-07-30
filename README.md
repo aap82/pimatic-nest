@@ -85,25 +85,17 @@ Devices
 ====================
 You should see the two types of devices provided by this plugin **NestThermostat** and **NestPresence.**
 
-### NEST THERMOSTAT ###
+Thermostat
+----------------
 
-_**It is required that you <a href="https://nest.com/support/article/How-can-I-lock-Nest-so-that-it-can-only-be-adjusted-within-a-certain-temperature-range">LOCK</a> any Nest Thermostat you wish to control via pimatic.**_
-
-
-
+_It is required that you <a href="https://nest.com/support/article/How-can-I-lock-Nest-so-that-it-can-only-be-adjusted-within-a-certain-temperature-range">LOCK</a> any Nest Thermostat you wish to control via pimatic._
 
 
 
+Presence
+--------------
 
- 
-
-
-
-THERMOSTATS
-
-**IT**
-
-NestPresence is the the **Home/Away** status of your nest location (also known as a structure).
+This is the **Home/Away** status of your nest location (also known as a structure).
 
 
 
