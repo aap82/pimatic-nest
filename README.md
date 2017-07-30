@@ -79,9 +79,19 @@ edit the pimatic `config.json` file, adding an entry in the `plugins` section li
 
 
 
-Now head over to the `DEVICES` section of the front-end app, and click on `DISCOVER DEVICES`
+Restart pimatic, and head over to the `DEVICES` section of the front-end app, and click on `DISCOVER DEVICES`
 
 You should see your newly discovered Nest Thermostats.
+
+
+DEVICES
+====================
+
+There are two devices provided by this plugin **NestThermostat** and **NestPresence.**
+
+NestPresence is the the **Home/Away** status of your nest location (also known as a structure).
+
+
 
 
 

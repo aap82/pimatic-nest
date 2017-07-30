@@ -7,7 +7,13 @@ module.exports = (env) ->
   deviceConfigDef = require('./device-config-schema')
   NestThermostat = require('./devices/nest-thermostat')(env)
   NestPresence = require('./devices/nest-presence')(env)
-  {getAttributeNames} = require('./devices/nest-thermostat-attributes')
+
+  allowedTempChanges = [
+    'target_temperature'
+    'target_temperature_low'
+    'target_temperature_high'
+
+  ]
 
   class NestPlugin extends env.plugins.Plugin
     init: (app, @framework, @config) =>
@@ -16,9 +22,13 @@ module.exports = (env) ->
         env.logger.error "No firebase token provided"
         return
 
-      @attrNames = getAttributeNames(@config.unit)
+      @blockTimeout = 15  #in minutes
+      @commandBuffer = 1.5
+      @changeableTemps = allowedTempChanges
+
       @client = new Firebase('wss://developer-api.nest.com')
       @nestApi = @connect(@config)
+
 
       @framework.deviceManager.registerDeviceClass "NestThermostat", {
         configDef: deviceConfigDef.NestThermostat,
@@ -32,6 +42,7 @@ module.exports = (env) ->
       @framework.deviceManager.on "discover", @discover
 
     connect: (config) =>
+      @lastCommandTime = Date.now()
       env.logger.info 'Connecting to Nest Firebase'
       return new Promise (resolve, reject) =>
         @client.authWithCustomToken config.token, (error) =>
@@ -44,17 +55,17 @@ module.exports = (env) ->
 
     discover: =>
       env.logger.info "Starting Nest Discovery"
-      @nestApi.then(@fetchData).then (snapshot) =>
+      @nestApi.then(=> @fetchData(@client)).then (snapshot) =>
         structurePromise = @discoverStructures(snapshot.child('structures'))
         thermostatPromise = @discoverThermostats(snapshot.child('devices/thermostats'))
-        Promise.all [structurePromise, thermostatPromise]
+        return Promise.all [structurePromise, thermostatPromise]
       .catch (err) =>
         env.logger.error(err)
 
 
     discoverStructures: (structures) =>
       return new Promise (resolve) =>
-        env.logger.info "Checking for new structures"
+        env.logger.info "Checking for new Structures"
         nestPresences = (dev.structure_id for dev in @framework.deviceManager.devicesConfig when dev.class is 'NestPresence')
         for key, structure of structures.val() when key not in nestPresences
           config =
@@ -78,9 +89,9 @@ module.exports = (env) ->
           @framework.deviceManager.discoveredDevice 'nest-thermostat', "#{config.name}", config
         return resolve()
 
-    fetchData: =>
+    fetchData: (ref) =>
       return new Promise (resolve) =>
-        @client.once 'value', (snapshot) =>
+        ref.once 'value', (snapshot) =>
           return resolve(snapshot)
 
 
