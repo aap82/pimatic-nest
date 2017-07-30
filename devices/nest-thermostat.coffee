@@ -21,6 +21,7 @@ module.exports = (env) ->
     _can_heat: null
     _hvac_mode: null
     _hvac_state: null
+    _time_to_target: null
     _has_leaf: null
     _humidity: null
     _ambient_temperature: null
@@ -39,6 +40,7 @@ module.exports = (env) ->
     getCan_heat: ->  Promise.resolve(@_can_heat)
     getHvac_mode: -> Promise.resolve(@_hvac_mode)
     getHvac_state: -> Promise.resolve(@_hvac_state)
+    getTime_to_target: -> Promise.resolve(@_time_to_target)
     getHas_leaf: -> Promise.resolve(@_has_leaf)
     getIs_locked: -> Promise.resolve(@_is_locked)
     getHumidity: ->  Promise.resolve(@_humidity)
@@ -61,9 +63,7 @@ module.exports = (env) ->
       return Promise.reject(logErrMsg  "Mode bust be either heat, cool or off, but #{mode} was requested") if mode not in ["heat", "cool", "off"]
       @updateNest("hvac_mode", mode)
 
-    increment: (attr) =>
-      console.log attr
-      @setTempTo(attr, "#{@["_#{attr}"] + unitChange(@unit)}")
+    increment: (attr) => @setTempTo(attr, "#{@["_#{attr}"] + unitChange(@unit)}")
     decrement: (attr) => @setTempTo(attr, "#{@["_#{attr}"] - unitChange(@unit)}")
     setTempTo: (attr, val) =>
       temp = parseFloat(val)
@@ -116,8 +116,8 @@ module.exports = (env) ->
       msg = @checkNestUpdateMsg(attr, value)
       return Promise.reject(logErrMsg msg) if msg?
       return new Promise (resolve, reject) =>
-        @plugin.lastCommandTime = Date.now()
         key = attr + if attr.includes("temp") then "_#{@unit}" else ""
+        @plugin.lastCommandTime = Date.now()
         @thermostat.child(key).set value, (error) =>
           if error
             if error.code is "BLOCKED" and not @blocked?
@@ -127,14 +127,15 @@ module.exports = (env) ->
             resolve()
 
     checkNestUpdateMsg: (attr, value) ->
+      console.log @plugin.timeDiff()
       return switch
+        when not @_is_locked then         "Unlocked Thermostats not allowed to be changed"
         when @blocked? then               "#{@name} is blocked for #{parseInt((@blocked-Date.now())/60000+1,10)}m"
         when not @["_#{attr}"]? then      "Param #{attr} doesnt exist"
         when not @_is_online then         "#{@name} is not online"
         when value is null then           "Can not send null value"
+        when @plugin.timeDiff() then      "Wait #{@plugin.commandBuffer}s between requests"
         when @["_#{attr}"] is value then  "Device #{@name} has #{attr} already set to #{value}."
-        when ((Date.now() - @plugin.lastCommandTime) / 1000) < @plugin.commandBuffer
-          "Wait #{@plugin.commandBuffer}s between requests"
         else null
 
     checkTempMsg: (attr, temp) ->

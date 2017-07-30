@@ -22,9 +22,12 @@ module.exports = (env) ->
         env.logger.error "No firebase token provided"
         return
 
-      @blockTimeout = 15  #in minutes
-      @commandBuffer = 1.5
       @changeableTemps = allowedTempChanges
+      @lastCommandTime = Date.now()
+      @commandBuffer = 10
+      @blockTimeout = 15  #in minutes
+
+
 
       @client = new Firebase('wss://developer-api.nest.com')
       @nestApi = @connect(@config)
@@ -42,7 +45,6 @@ module.exports = (env) ->
       @framework.deviceManager.on "discover", @discover
 
     connect: (config) =>
-      @lastCommandTime = Date.now()
       env.logger.info 'Connecting to Nest Firebase'
       return new Promise (resolve, reject) =>
         @client.authWithCustomToken config.token, (error) =>
@@ -88,6 +90,9 @@ module.exports = (env) ->
             device_id: thermostat.device_id
           @framework.deviceManager.discoveredDevice 'nest-thermostat', "#{config.name}", config
         return resolve()
+
+    timeDiff: => ((Date.now() - @lastCommandTime) / 1000) < @commandBuffer
+
 
     fetchData: (ref) =>
       return new Promise (resolve) =>
