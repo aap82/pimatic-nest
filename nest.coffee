@@ -24,7 +24,7 @@ module.exports = (env) ->
 
       @changeableTemps = allowedTempChanges
       @lastCommandTime = Date.now()
-      @commandBuffer = 10
+      @commandBuffer = 1.5
       @blockTimeout = 15  #in minutes
 
 
@@ -35,7 +35,7 @@ module.exports = (env) ->
 
       @framework.deviceManager.registerDeviceClass "NestThermostat", {
         configDef: deviceConfigDef.NestThermostat,
-        createCallback: (config) => new NestThermostat(config, @)
+        createCallback: @callBackHandler("NestThermostat", NestThermostat) #(config) => new NestThermostat(config, @)
       }
 
       @framework.deviceManager.registerDeviceClass "NestPresence", {
@@ -44,6 +44,9 @@ module.exports = (env) ->
       }
       @framework.deviceManager.on "discover", @discover
 
+    callBackHandler: (className, classType) =>
+      return (config, lastState) =>
+        return new classType(config, @, lastState)
     connect: (config) =>
       env.logger.info 'Connecting to Nest Firebase'
       return new Promise (resolve, reject) =>
@@ -99,14 +102,16 @@ module.exports = (env) ->
         ref.once 'value', (snapshot) =>
           return resolve(snapshot)
 
-
-
-
-
-
-
-
-
+    sendUpdate: (ref, key, value) =>
+      return new Promise (resolve, reject) =>
+        if ((Date.now() - @lastCommandTime) / 1000) < @commandBuffer
+          return reject code: "Wait #{@commandBuffer}s between requests"
+        @lastCommandTime = Date.now()
+        console.log 'sending update'
+        ref.child(key).set value, (error) =>
+          if error
+            reject(error)
+          resolve()
 
 
   nestPlugin = new NestPlugin

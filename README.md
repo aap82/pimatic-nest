@@ -87,7 +87,12 @@ You should see the two types of devices provided by this plugin **NestThermostat
 
 ### NEST THERMOSTAT ###
 
-_**It is required that you <a href="https://nest.com/support/article/How-can-I-lock-Nest-so-that-it-can-only-be-adjusted-within-a-certain-temperature-range">LOCK</a> any Nest Thermostats you wish to control via pimatic.**_
+_**It is required that you <a href="https://nest.com/support/article/How-can-I-lock-Nest-so-that-it-can-only-be-adjusted-within-a-certain-temperature-range">LOCK</a> any Nest Thermostat you wish to control via pimatic.**_
+
+
+
+
+
 
 
  

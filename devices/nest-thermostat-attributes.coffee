@@ -1,4 +1,8 @@
 attributes =
+  blocked:
+    description: "If blocked the time else null"
+    type: "number"
+    unit: ""
   is_online:
     description: "If unit has ability to heat"
     label: "Can Heat?"

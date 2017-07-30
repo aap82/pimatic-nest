@@ -11,11 +11,14 @@ module.exports = (env) ->
   logErrMsg = (msg) ->
     env.logger.error(msg)
     return msg
+  longInfoMsg = (msg) ->
+    env.logger.info(msg)
+    return msg
 
   class NestThermostat extends env.devices.Device
     attributes: attributes
     actions: actions
-
+#    _blocked: null
     _is_online: null
     _can_cool: null
     _can_heat: null
@@ -34,7 +37,7 @@ module.exports = (env) ->
     _eco_temperature_low: null
     _eco_temperature_high: null
 
-
+    getBlocked: -> Promise.resolve(@_blocked)
     getIs_online: ->  Promise.resolve(@_is_online)
     getCan_cool: ->  Promise.resolve(@_can_cool)
     getCan_heat: ->  Promise.resolve(@_can_heat)
@@ -61,6 +64,7 @@ module.exports = (env) ->
     setModeTo: (mode) ->
       return Promise.reject(logErrMsg  "Thermostat must be Locked to change the mode") if not @_is_locked
       return Promise.reject(logErrMsg  "Mode bust be either heat, cool or off, but #{mode} was requested") if mode not in ["heat", "cool", "off"]
+      return Promise.resolve()
       @updateNest("hvac_mode", mode)
 
     increment: (attr) => @setTempTo(attr, "#{@["_#{attr}"] + unitChange(@unit)}")
@@ -69,15 +73,15 @@ module.exports = (env) ->
       temp = parseFloat(val)
       msg = @checkTempMsg(attr, temp)
       return Promise.reject(logErrMsg msg) if msg?
-      return @updateNest(attr, temp)
+      return @updateNest(attr, temp).then((msg) -> return msg)
 
 
 
-    constructor: (@config, @plugin) ->
+    constructor: (@config, @plugin, lastState) ->
       @id = @config.id
       @name = @config.name
       super()
-      @blocked = null
+      @_blocked = lastState.blocked?.value or null
       @unit = @plugin.config.unit
       @thermostat = null
       @attrNames = null
@@ -112,31 +116,17 @@ module.exports = (env) ->
       return
 
     updateNest: (attr, value) =>
-      if @blocked? and Date.now() > @blocked then @blocked = null
-      msg = @checkNestUpdateMsg(attr, value)
+      @updateState("blocked", null) if @_blocked? and Date.now() > @_blocked
+      msg = checkNestMsg(@, attr, value)
       return Promise.reject(logErrMsg msg) if msg?
-      return new Promise (resolve, reject) =>
-        key = attr + if attr.includes("temp") then "_#{@unit}" else ""
-        @plugin.lastCommandTime = Date.now()
-        @thermostat.child(key).set value, (error) =>
-          if error
-            if error.code is "BLOCKED" and not @blocked?
-              @blocked = Date.now() + (@plugin.blockTimeout * 60000)
-            reject(logErrMsg "Nest Update Error: #{error.code}")
-          else
-            resolve()
-
-    checkNestUpdateMsg: (attr, value) ->
-      console.log @plugin.timeDiff()
-      return switch
-        when not @_is_locked then         "Unlocked Thermostats not allowed to be changed"
-        when @blocked? then               "#{@name} is blocked for #{parseInt((@blocked-Date.now())/60000+1,10)}m"
-        when not @["_#{attr}"]? then      "Param #{attr} doesnt exist"
-        when not @_is_online then         "#{@name} is not online"
-        when value is null then           "Can not send null value"
-        when @plugin.timeDiff() then      "Wait #{@plugin.commandBuffer}s between requests"
-        when @["_#{attr}"] is value then  "Device #{@name} has #{attr} already set to #{value}."
-        else null
+      key = attr + if attr.includes("temp") then "_#{@unit}" else ""
+      @plugin.sendUpdate(@thermostat, key, value)
+      .then => return Promise.resolve(longInfoMsg("#{@name} #{attr} set to #{value}"))
+      .catch (error) =>
+        if error?.code is "BLOCKED" and not @_blocked?
+          @_blocked = Date.now() + (@plugin.blockTimeout * 60000)
+          @emit "blocked", @_blocked
+        return (logErrMsg "Nest Update Error: #{error.code}")
 
     checkTempMsg: (attr, temp) ->
       switch
@@ -158,6 +148,19 @@ module.exports = (env) ->
 
 
   return NestThermostat
+
+
+checkNestMsg = (therm, attr, value) ->
+  return switch
+    when therm._blocked? then              "#{therm.name} is blocked for #{parseInt((therm._blocked-Date.now())/60000,10)}m"
+    when not therm._is_locked then         "Only locked thermostats may be updated"
+    when not therm["_#{attr}"]? then      "Param #{attr} doesnt exist"
+    when not therm._is_online then         "#{therm.name} is not online"
+    when value is null then           "Can not send null value"
+    when therm["_#{attr}"] is value then  "Device #{therm.name} has #{attr} already set to #{value}."
+    else null
+
+  
 
 
 
