@@ -128,7 +128,7 @@ module.exports = (env) ->
 
     checkNestUpdateMsg: (attr, value) ->
       return switch
-        when @blocked? then               "#{@name} is blocked from making updates for #{parseInt((@blocked-Date.now())/60000+1,10)} mins"
+        when @blocked? then               "#{@name} is blocked for #{parseInt((@blocked-Date.now())/60000+1,10)}m"
         when not @["_#{attr}"]? then      "Param #{attr} doesnt exist"
         when not @_is_online then         "#{@name} is not online"
         when value is null then           "Can not send null value"

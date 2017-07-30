@@ -1,41 +1,45 @@
 attributes =
   is_online:
-    label: "Can Heat?"
     description: "If unit has ability to heat"
+    label: "Can Heat?"
     type: "boolean"
   ambient_temperature:
-    label: "Room Temp"
     description: "Ambient Room Temperature"
+    label: "Room Temp"
     type: "number"
     discrete: true
     unit: "°"
   can_cool:
-    label: "Can Cool?"
     description: "If unit has ability to cool"
+    label: "Can Cool?"
     type: "boolean"
   can_heat:
-    label: "Can Heat?"
     description: "If unit has ability to heat"
+    label: "Can Heat?"
     type: "boolean"
   humidity:
-    label: "Humidity"
     description: "Current Humidity"
+    label: "Humidity"
     type: "number"
     unit: "%"
   has_leaf:
-    label: "Leaf"
     description: "thermostat should show a leaf"
+    label: "Leaf"
     type: "boolean"
   hvac_mode:
-    label: "Mode"
     description: "Thermostat Mode"
+    label: "Mode"
     type: "string"
     enum: ["heat-cool", "heat", "cool", "eco", "off"]
   hvac_state:
-    label: "HVAC State"
     description: "Thermostat State"
+    label: "HVAC State"
     type: "string"
     enum: ["off", "heating", "cooling"]
+  time_to_target:
+    description: "Time remaining until target temp reached"
+    label: "Time to Temp"
+    type: "string"
   is_locked:
     description: "Lock State of the Thermostat"
     type: "boolean"
@@ -65,14 +69,14 @@ attributes =
     description: "Max Temp of Locked Thermostat"
     type: "number"
     unit: "°"
-  eco_temperature_high:
-    label: "Away Temp High"
+  eco_temperature_low:
     description: "The temp that should be set"
+    label: "Away Temp Low"
     type: "number"
     unit: "°"
-  eco_temperature_low:
-    label: "Away Temp Low"
+  eco_temperature_high:
     description: "The temp that should be set"
+    label: "Away Temp High"
     type: "number"
     unit: "°"
 
