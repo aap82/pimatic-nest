@@ -1,12 +1,4 @@
-attributes =
-  blocked:
-    description: "If blocked the time else null"
-    type: "number"
-    unit: ""
-  is_online:
-    description: "If unit has ability to heat"
-    label: "Can Heat?"
-    type: "boolean"
+module.exports =
   ambient_temperature:
     description: "Ambient Room Temperature"
     label: "Room Temp"
@@ -44,8 +36,16 @@ attributes =
     description: "Time remaining until target temp reached"
     label: "Time to Temp"
     type: "string"
+  is_blocked:
+    description: "If blocked the time else null"
+    type: "number"
+    unit: ""
   is_locked:
     description: "Lock State of the Thermostat"
+    type: "boolean"
+  is_online:
+    description: "If unit has ability to heat"
+    label: "Can Heat?"
     type: "boolean"
   target_temperature:
     label: "Target Temp"
@@ -68,40 +68,22 @@ attributes =
   locked_temp_min:
     description: "Min Temp of Locked Thermostat"
     type: "number"
+    discrete: true
     unit: "°"
   locked_temp_max:
     description: "Max Temp of Locked Thermostat"
     type: "number"
+    discrete: true
     unit: "°"
   eco_temperature_low:
     description: "The temp that should be set"
     label: "Away Temp Low"
     type: "number"
     unit: "°"
+    discrete: true
   eco_temperature_high:
     description: "The temp that should be set"
     label: "Away Temp High"
     type: "number"
+    discrete: true
     unit: "°"
-
-
-
-attributeNames = (unit) ->
-  attrNames = (attr for attr, value of attributes)
-  for attr, i in attrNames when attr.includes("temp")
-    attrNames[i] = "#{attr}_#{unit}"
-  attrNames
-
-
-updateAttributes = (attrs, unit) ->
-  for attr, props of attrs when props.unit is "°"
-    attrs[attr].unit = "°#{unit.toUpperCase()}"
-  return attrs
-
-
-
-
-module.exports =
-  attributes: attributes
-  getAttributeNames: attributeNames
-  updateAttributes: updateAttributes

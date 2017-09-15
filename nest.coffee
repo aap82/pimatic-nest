@@ -8,59 +8,47 @@ module.exports = (env) ->
   NestThermostat = require('./devices/nest-thermostat')(env)
   NestPresence = require('./devices/nest-presence')(env)
 
-  allowedTempChanges = [
-    'target_temperature'
-    'target_temperature_low'
-    'target_temperature_high'
-
-  ]
-
   class NestPlugin extends env.plugins.Plugin
     init: (app, @framework, @config) =>
       env.logger.info("Initializing Nest Plugin")
       if @config.token is ""
         env.logger.error "No firebase token provided"
         return
-
-      @changeableTemps = allowedTempChanges
-      @lastCommandTime = Date.now()
-      @commandBuffer = 1.5
-      @blockTimeout = 15  #in minutes
-
-
-
+      @lastNestCmdTime = Date.now()
+      @cmdBuffer = 1.5 * 1000
       @client = new Firebase('wss://developer-api.nest.com')
-      @nestApi = @connect(@config)
-
-
       @framework.deviceManager.registerDeviceClass "NestThermostat", {
         configDef: deviceConfigDef.NestThermostat,
         createCallback: @callBackHandler("NestThermostat", NestThermostat) #(config) => new NestThermostat(config, @)
       }
-
       @framework.deviceManager.registerDeviceClass "NestPresence", {
         configDef: deviceConfigDef.NestPresence,
         createCallback: (config) => new NestPresence(config, @)
       }
       @framework.deviceManager.on "discover", @discover
 
+      @nestApi = @connect(@config).catch((error) ->
+        env.logger.error("Error in connecting Firebase Socket: #{error}")
+      )
+
+
     callBackHandler: (className, classType) =>
       return (config, lastState) =>
         return new classType(config, @, lastState)
+
     connect: (config) =>
       env.logger.info 'Connecting to Nest Firebase'
       return new Promise (resolve, reject) =>
         @client.authWithCustomToken config.token, (error) =>
           if (error)
-            env.logger.error  'Error in connecting Firebase Socket.', error
-            return reject()
+            return reject(error)
           else
             env.logger.info  'Firebase socket is connected.'
-            return resolve()
+            return resolve(@client)
 
     discover: =>
       env.logger.info "Starting Nest Discovery"
-      @nestApi.then(=> @fetchData(@client)).then (snapshot) =>
+      @nestApi.then(=> @fetchNestData(@client)).then (snapshot) =>
         structurePromise = @discoverStructures(snapshot.child('structures'))
         thermostatPromise = @discoverThermostats(snapshot.child('devices/thermostats'))
         return Promise.all [structurePromise, thermostatPromise]
@@ -91,27 +79,15 @@ module.exports = (env) ->
             id: "nest-thermostat-#{paramCase(thermostat.name)}"
             name: thermostat.name
             device_id: thermostat.device_id
+            temp_scale: thermostat.temperature_scale
+            display_temp_scale: no
           @framework.deviceManager.discoveredDevice 'nest-thermostat', "#{config.name}", config
         return resolve()
 
-    timeDiff: => ((Date.now() - @lastCommandTime) / 1000) < @commandBuffer
-
-
-    fetchData: (ref) =>
+    fetchNestData: (ref) =>
       return new Promise (resolve) =>
         ref.once 'value', (snapshot) =>
           return resolve(snapshot)
-
-    sendUpdate: (ref, key, value) =>
-      return new Promise (resolve, reject) =>
-        if ((Date.now() - @lastCommandTime) / 1000) < @commandBuffer
-          return reject code: "Wait #{@commandBuffer}s between requests"
-        @lastCommandTime = Date.now()
-        console.log 'sending update'
-        ref.child(key).set value, (error) =>
-          if error
-            reject(error)
-          resolve()
 
 
   nestPlugin = new NestPlugin

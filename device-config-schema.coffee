@@ -14,3 +14,13 @@ module.exports =
       device_id:
         description: "The Nest API thermostat id"
         type: "string"
+      temp_scale:
+        description: "Temperature scale. Auto-populated by plugin based on Nest info"
+        type: "string"
+        enum: ["F", "C"]
+        default: "F"
+      show_temp_scale:
+        description: "Display either F or C after temperature values"
+        type: "boolean"
+        default: false
+
