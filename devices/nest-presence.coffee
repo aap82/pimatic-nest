@@ -1,10 +1,8 @@
 module.exports = (env) ->
-
   Promise = env.require 'bluebird'
   assert = env.require 'cassert'
 
   class NestPresence extends env.devices.PresenceSensor
-
     constructor: (@config, @plugin) ->
       @id = @config.id
       @name = @config.name
@@ -12,8 +10,6 @@ module.exports = (env) ->
       @_presence = null
       @nestPresence = null
       @onNestUpdates = null
-
-
       @plugin.nestApi.then =>
         @init()
         return Promise.resolve()
@@ -29,11 +25,8 @@ module.exports = (env) ->
       @onNestUpdates = @nestPresence.ref().on 'value', (update) =>
         @_setPresence(update.val() is 'home')
 
-
     destroy: () ->
       @nestPresence.ref().off('value', @onNestUpdates)
       super()
-
-
 
   return NestPresence

@@ -33,7 +33,6 @@ module.exports = (env) ->
         env.logger.error("Error in connecting Firebase Socket: #{error}")
       )
 
-
     callBackHandler: (className, classType) =>
       return (config, lastState) =>
         return new classType(config, @, lastState)
@@ -57,7 +56,6 @@ module.exports = (env) ->
       .catch (err) =>
         env.logger.error(err)
         return Promise.reject()
-
 
     discoverStructures: (structures) =>
       return new Promise (resolve) =>
@@ -91,7 +89,6 @@ module.exports = (env) ->
       return new Promise (resolve) =>
         ref.once 'value', (snapshot) =>
           return resolve(snapshot)
-
 
   nestPlugin = new NestPlugin
 

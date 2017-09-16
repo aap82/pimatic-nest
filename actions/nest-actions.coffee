@@ -1,5 +1,4 @@
 module.exports = (env) ->
-
   Promise = env.require "bluebird"
   M = env.matcher
 
@@ -59,8 +58,7 @@ module.exports = (env) ->
           actionHandler: new NestHVACModeActionHandler(
             @framework, @plugin, thermostat, hvacMode
           )
-        }        
-
+        }
 
   return {
     NestTemperatureActionProvider
