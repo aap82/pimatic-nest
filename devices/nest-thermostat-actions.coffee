@@ -1,14 +1,14 @@
 module.exports =
 
-  setModeToCool:
+  setHVACModeToCool:
     description: "Set hvac_mode to cool"
-  setModeToHeat:
+  setHVACModeToHeat:
     description: "Set hvac_mode to heat"
-  setModeToOff:
+  setHVACModeToOff:
     description: "Set hvac_mode to off"
-  setModeToHeatCool:
+  setHVACModeToHeatCool:
     description: "Set hvac_mode to heat-cool"
-  changeModeTo:
+  changeHVACModeTo:
     description: "Change hvac_mode"
     params:
       hvac_mode:
