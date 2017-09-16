@@ -7,7 +7,7 @@ module.exports = (env) ->
   deviceConfigDef = require('./device-config-schema')
   NestThermostat = require('./devices/nest-thermostat')(env)
   NestPresence = require('./devices/nest-presence')(env)
-  NestTemperatureActionProvider = require('./actions/nest-actions')(env)
+  {NestTemperatureActionProvider, NestHVACModeActionProvider} = require('./actions/nest-actions')(env)
 
   class NestPlugin extends env.plugins.Plugin
     init: (app, @framework, @config) =>
@@ -26,6 +26,7 @@ module.exports = (env) ->
         createCallback: (config) => new NestPresence(config, @)
       }
       @framework.ruleManager.addActionProvider(new NestTemperatureActionProvider(@framework,@))
+      @framework.ruleManager.addActionProvider(new NestHVACModeActionProvider(@framework,@))
       @framework.deviceManager.on "discover", @discover
 
       @nestApi = @connect(@config).catch((error) ->
