@@ -8,16 +8,10 @@ module.exports = (env) ->
 
     executeAction: (simulate) =>
       if simulate
-        Promise.resolve(__("would do one of many things"))
+        Promise.resolve(__("would change target temperature of #{@thermostat.id} to #{@targetTemp}"))
       else
-        _action = switch @attrName
-          when "target_temperature_high"
-            @thermostat.changeTargetTempHighTo(@targetTemp)
-          when "target_temperature_low"
-            @thermostat.changeTargetTempLowTo(@targetTemp)
-          else
-            @thermostat.changeTargetTempTo(@targetTemp)
-        _action
+        @thermostat.changeTargetTempTo(@targetTemp)
+
 
     hasRestoreAction: -> no
 
@@ -28,19 +22,15 @@ module.exports = (env) ->
     parseAction: (input, context) ->
       thermostats = (device for id, device of @framework.deviceManager.devices when device.config.class is "NestThermostat")
       thermostat = null
-      targetType = null
       targetTemp = null
       m = M(input, context)
         .match("set target temperature of nest thermostat ")
-      m = m.matchDevice(thermostats, (next, d) =>
-        thermostat = d
-      )
-      m = m.match(' to ').matchNumber (next, ts) =>
-        targetTemp = ts
+      m = m.matchDevice(thermostats, (next, d) => thermostat = d)
+      m = m.match(' to ').matchNumber((next, ts) =>      targetTemp = ts)
       m = m.match('°')
       match = m.getFullMatch()
       if match?
-        attrName = "target_temperature" + if targetType? then "_#{targetType}" else ""
+        attrName = "target_temperature"
         return {
           token: match
           nextInput: input.substring(match.length)
