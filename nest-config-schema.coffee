@@ -8,10 +8,6 @@ module.exports =
       description: "Token required for Firebase Access"
       type: "string"
       default: ""
-    displayTempScale:
-      description: "Display either F or C after temperature values"
-      type: "boolean"
-      default: false
 
 
 
