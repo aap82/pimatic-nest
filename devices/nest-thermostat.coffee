@@ -170,7 +170,5 @@ module.exports = (env) ->
       @thermostat.ref().off 'child_changed', @handleNestUpdate
       super()
 
-
-
   return NestThermostat
 
