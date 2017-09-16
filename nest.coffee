@@ -7,6 +7,7 @@ module.exports = (env) ->
   deviceConfigDef = require('./device-config-schema')
   NestThermostat = require('./devices/nest-thermostat')(env)
   NestPresence = require('./devices/nest-presence')(env)
+  NestTemperatureActionProvider = require('./actions/nest-actions')(env)
 
   class NestPlugin extends env.plugins.Plugin
     init: (app, @framework, @config) =>
@@ -14,8 +15,7 @@ module.exports = (env) ->
       if @config.token is ""
         env.logger.error "No firebase token provided"
         return
-      @lastNestCmdTime = Date.now()
-      @cmdBuffer = 1.5 * 1000
+
       @client = new Firebase('wss://developer-api.nest.com')
       @framework.deviceManager.registerDeviceClass "NestThermostat", {
         configDef: deviceConfigDef.NestThermostat,
@@ -25,6 +25,7 @@ module.exports = (env) ->
         configDef: deviceConfigDef.NestPresence,
         createCallback: (config) => new NestPresence(config, @)
       }
+      @framework.ruleManager.addActionProvider(new NestTemperatureActionProvider(@framework,@))
       @framework.deviceManager.on "discover", @discover
 
       @nestApi = @connect(@config).catch((error) ->
@@ -54,6 +55,7 @@ module.exports = (env) ->
         return Promise.all [structurePromise, thermostatPromise]
       .catch (err) =>
         env.logger.error(err)
+        return Promise.reject()
 
 
     discoverStructures: (structures) =>
@@ -80,7 +82,7 @@ module.exports = (env) ->
             name: thermostat.name
             device_id: thermostat.device_id
             temp_scale: thermostat.temperature_scale
-            display_temp_scale: no
+            show_temp_scale: no
           @framework.deviceManager.discoveredDevice 'nest-thermostat', "#{config.name}", config
         return resolve()
 
