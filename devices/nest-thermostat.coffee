@@ -144,8 +144,8 @@ module.exports = (env) ->
 
     _isHVACModeOk: (attr) ->
       if @thermState.hvac_mode is 'eco' or
-        (attr is 'target_temperature' and @thermState.hvac_mode not in ['heat', 'cool']) or
-        ((attr is 'target_temperature_low' or attr is 'target_temperature_high') and @thermState.hvac_mode isnt 'heat-cool')
+      (attr is 'target_temperature' and @thermState.hvac_mode not in ['heat', 'cool']) or
+      ((attr is 'target_temperature_low' or attr is 'target_temperature_high') and @thermState.hvac_mode isnt 'heat-cool')
         throw new Error "can not change #{attr} when hvac_mode is #{@thermState.hvac_mode}"
       else return yes
 
