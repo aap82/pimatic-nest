@@ -1,5 +1,4 @@
 module.exports =
-
   setHVACModeToCool:
     description: "Set hvac_mode to cool"
   setHVACModeToHeat:
@@ -14,7 +13,6 @@ module.exports =
       hvac_mode:
         type: "string"
         enum: ["heat-cool", "heat", "cool", "off"]
-
   decrementTargetTemp:
     description: "Decrease target temperature 1 unit"
   incrementTargetTemp:
