@@ -18,8 +18,7 @@ module.exports = (env) ->
       thermostats = (device for id, device of @framework.deviceManager.devices when device.config.class is "NestThermostat")
       thermostat = null
       targetTemp = null
-      m = M(input, context)
-        .match("set target_temperature of nest thermostat ")
+      m = M(input, context).match("set target_temperature of nest thermostat ")
       m = m.matchDevice(thermostats, (next, d) => thermostat = d)
       m = m.match(' to ').matchNumber((next, ts) =>      targetTemp = ts)
       m = m.match('°')
@@ -49,8 +48,7 @@ module.exports = (env) ->
       thermostat = null
       hvacModes = ["heat-cool", "heat", "cool", "off"]
       hvacMode = null
-      m = M(input, context)
-        .match("set hvac_mode of nest thermostat ")
+      m = M(input, context).match("set hvac_mode of nest thermostat ")
       m = m.matchDevice(thermostats, (next, d) => thermostat = d)
       m = m.match(' to ').match(hvacModes, (next, mode) => hvacMode = mode)
       match = m.getFullMatch()
