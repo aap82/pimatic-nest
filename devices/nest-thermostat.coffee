@@ -1,7 +1,6 @@
 module.exports = (env) ->
   _ = require '../utils'
   Promise = env.require 'bluebird'
-  assert = env.require 'cassert'
   nestThermostatAttributes = require './nest-thermostat-attributes'
   nestThermostatActions = require './nest-thermostat-actions'
   tempAttrs = [
@@ -15,7 +14,6 @@ module.exports = (env) ->
     'eco_temperature_high'
   ]
 
-
   class NestThermostat extends env.devices.Device
     actions: nestThermostatActions
     @property 'blocked',
@@ -24,7 +22,6 @@ module.exports = (env) ->
         @thermState.is_blocked = switch block
           when yes then Date.now() + @blockTime
           else null
-
 
     constructor: (@config, @plugin, lastState) ->
       @id = @config.id
