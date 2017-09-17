@@ -7,6 +7,13 @@ module.exports =
       structure_id:
         description: "Structure ID for the Presence Sensor"
         type: "string"
+  NestHomeAwayToggle:
+    title: "Nest Home/Away Toggle"
+    type: "object"
+    properties:
+      structure_id:
+        description: "Structure ID for the Toggle Actuator"
+        type: "string"
   NestThermostat:
     title: "Nest Thermostat"
     type: "object"

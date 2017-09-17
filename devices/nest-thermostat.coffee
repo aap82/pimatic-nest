@@ -28,8 +28,10 @@ module.exports = (env) ->
       @name = @config.name
       @unit = @config.temp_scale.toLowerCase()
       @unitChange =  if @unit is 'c' then 0.5 else 1
-      @blockTime = 20 * 60000
+      @blockTime = 15 * 60000
+      @unBlockTimeout = null
       @thermostat = null
+      @thermostatUpdates = null
       @thermState = {}
       @attributes = _.clone(@attributes)
       @attrNames = []
@@ -37,12 +39,9 @@ module.exports = (env) ->
         do (attrName, attrProps) =>
           @attrNames.push attrName
           @attributes[attrName] = _.clone(attrProps)
-          if attrName in tempAttrs
-            if @config.show_temp_scale
-              @attributes[attrName].unit = "°#{@config.temp_scale}"
-          @thermState[attrName] = null
-          if attrName is 'is_blocked' and lastState.is_blocked?.value?
-            @thermState.is_blocked = lastState.is_blocked.value
+          if attrName in tempAttrs and @config.show_temp_scale
+            @attributes[attrName].unit = "°#{@config.temp_scale}"
+          @thermState[attrName] = lastState[attrName]?.value or null
           @_createGetter(attrName, => return Promise.resolve(@thermState[attrName]))
       super()
       @plugin.nestApi.then(@init)
@@ -51,10 +50,24 @@ module.exports = (env) ->
       @thermostat = client.child('devices/thermostats').child(@config.device_id)
       @plugin.fetchNestData(@thermostat.ref()).then (snap) =>
         @_setState(key, value) for key, value of snap.val()
-        @thermostat.ref().on 'child_changed', @handleNestUpdate
-        return Promise.resolve()
+        @thermostatUpdates = @thermostat.ref().on('child_changed', (update) => @_setState(update.name(), update.val()))
+        if @blocked isnt null
+          if Date.now() < @blocked
+            @unBlockTimeout = setTimeout((=> @_unBlockNestCommands()),(new Date(@blocked - Date.now())) )
+          else
+            @_unBlockNestCommands()
+        return
 
-    handleNestUpdate: (update) => @_setState(update.name(), update.val())
+    _setState: (key, newValue) =>
+      if key is "temperature_scale" and @config.temp_scale isnt newValue
+        @config.temp_scale = newValue
+        return
+      attrName = @_getAttrName(key)
+      return unless attrName?
+      return if @thermState[attrName] is newValue
+      @thermState[attrName] = newValue
+      @emit attrName, newValue
+      return null
 
     setHVACModeToCool: ->     @changeHVACModeTo("cool")
     setHVACModeToHeat: ->     @changeHVACModeTo("heat")
@@ -75,7 +88,8 @@ module.exports = (env) ->
 
     decrementTargetTemp: -> @changeTargetTempTo("-1")
     incrementTargetTemp: -> @changeTargetTempTo("+1")
-    changeTargetTempTo: (temp) => @_sendTemperatureCommand("target_temperature", @_getNewTemp("target_temperature", temp))
+    changeTargetTempTo: (temp) =>
+      @_sendTemperatureCommand("target_temperature", @_getNewTemp("target_temperature", temp))
 
     decrementTargetTempLow: -> @changeTargetTempLowTo("-1")
     incrementTargetTempLow: -> @changeTargetTempLowTo("+1")
@@ -85,8 +99,8 @@ module.exports = (env) ->
         throw new Error("Target temp low must be less target temp high")
       @_sendTemperatureCommand("target_temperature_low", newTempLow)
 
-    incrementTargetTempHigh: -> @changeTargetTempHighTo("+1")
     decrementTargetTempHigh: -> @changeTargetTempHighTo("-1")
+    incrementTargetTempHigh: -> @changeTargetTempHighTo("+1")
     changeTargetTempHighTo: (temp) =>
       newTempHigh = @_getNewTemp("target_temperature_high" , temp)
       unless newTempHigh > (@thermState.target_temperature_low + 1)
@@ -99,45 +113,42 @@ module.exports = (env) ->
       @_sendNestCommand(attrName, newTemp)
 
     _sendNestCommand: (attrName, value) =>
-      @_isOkToSend() if @blocked isnt null
-      throw new Error("New value for #{attrName} is same as current") if @thermState[attrName] is value
+      return unless @_isOkToSend(attrName, value)
       return new Promise (resolve, reject) =>
         @thermostat.child(@_getNestName(attrName)).set value, (error) =>
-          return resolve() unless error?
+          return resolve("#{attrName} successfully set") unless error?
           if error.code is "BLOCKED"
-            @blocked = yes
-            @emit "is_blocked", @blocked
+            @_blockNestCommands()
           env.logger.error "Nest Command Error: #{error}"
           return reject(error.code)
 
-    _setState: (key, newValue) =>
-      if key is "temperature_scale"
-        if @config.temp_scale isnt newValue
-          @config.temp_scale = newValue
-          return
-      attrName = @_getAttrName(key)
-      return unless attrName?
-      return if @thermState[attrName] is newValue
-      @thermState[attrName] = newValue
-      @emit attrName, newValue
+    _blockNestCommands: =>
+      if @unBlockTimeout is null
+        @blocked = yes
+        @emit "is_blocked", @blocked
+        @unBlockTimeout = setTimeout((=> @_unBlockNestCommands()),@blockTime )
+      return null
+
+    _unBlockNestCommands: =>
+      @unBlockTimeout = null
+      @blocked = no
+      @emit "is_blocked", @blocked
+      return null
 
     _getNewTemp: (tempAttr, newTemp) =>
       if @thermState[tempAttr] is null
-        throw new Error("Not ready")
+        throw new Error("#{tempAttr} is an invalid temp attribute")
       else
         return switch newTemp
           when "-1" then @thermState[tempAttr] - @unitChange
           when "+1" then @thermState[tempAttr] + @unitChange
           else parseFloat(newTemp)
 
-    _getNestName: (attrName) -> return attrName + if attrName in tempAttrs then "_#{@unit}" else ""
-    _getAttrName: (nestAttr) ->
-      isTemp = nestAttr.substring(nestAttr.length-2, nestAttr.length)
-      if isTemp in ["_c", "_f"]
-        return nestAttr.substring(0, nestAttr.length-2) if isTemp is "_#{@unit}"
-      else if nestAttr in @attrNames
-        return nestAttr
-      else return null
+    _isValidTemp: (temp) ->
+      if @thermState.locked_temp_min <= temp <= @thermState.locked_temp_max
+        return yes
+      else
+        throw new Error "#{temp} is outside valid range of #{@thermState.locked_temp_min}-#{@thermState.locked_temp_max}."
 
     _isHVACModeOk: (attr) ->
       if @thermState.hvac_mode is 'eco' or
@@ -146,25 +157,33 @@ module.exports = (env) ->
         throw new Error "can not change #{attr} when hvac_mode is #{@thermState.hvac_mode}"
       else return yes
 
-    _isValidTemp: (temp) ->
-      if @thermState.locked_temp_min <= temp <= @thermState.locked_temp_max
-        return yes
-      else
-        throw new Error "#{temp} is outside valid range of #{@thermState.locked_temp_min}-#{@thermState.locked_temp_max}."
-
-    _isOkToSend: ->
-      throw new Error("No thermostat device") if @thermostat is null
+    _isOkToSend: (attrName, value) ->
+      throw new Error("Thermostat not yet initialized") if @thermostat is null
       throw new Error("Thermostat not online") unless @thermState.is_online is yes
       throw new Error("Thermostat not locked") unless @thermState.is_locked is yes
-      if Date.now() < @blocked
-        timeLeft = (new Date(@blocked - Date.now()))
-        throw new Error("Sending commands blocked for #{timeLeft.getMinutes()}m#{timeLeft.getSeconds()}s")
-      @blocked = no
-      @emit "is_blocked", @blocked
-      return null
+      throw new Error("Value #{value} for #{attrName} is same as current") if @thermState[attrName] is value
+      if @blocked isnt null
+        if Date.now() < @blocked
+          timeLeft = (new Date(@blocked - Date.now()))
+          throw new Error("Sending commands blocked for #{timeLeft.getMinutes()}m#{timeLeft.getSeconds()}s")
+      return yes
+
+    _getNestName: (attrName) -> return attrName + if attrName in tempAttrs then "_#{@unit}" else ""
+    _getAttrName: (nestAttr) ->
+      isTemp = nestAttr.substring(nestAttr.length-2, nestAttr.length)
+      if isTemp in ["_c", "_f"]
+        if isTemp is "_#{@unit}"
+          nestAttr.substring(0, nestAttr.length-2)
+        else return null
+      else if nestAttr in @attrNames
+        return nestAttr
+      else return null
+
 
     destroy: () ->
-      @thermostat.ref().off 'child_changed', @handleNestUpdate
+      clearTimeout(@unBlockTimeout) if @unBlockTimeout?
+      if @thermostatUpdates?
+        @thermostat.ref().off 'child_changed', @thermostatUpdates
       super()
 
   return NestThermostat

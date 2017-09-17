@@ -6,8 +6,9 @@ module.exports = (env) ->
 
   deviceConfigDef = require('./device-config-schema')
   NestThermostat = require('./devices/nest-thermostat')(env)
-  NestPresence = require('./devices/nest-presence')(env)
-  {NestTemperatureActionProvider, NestHVACModeActionProvider} = require('./actions/nest-actions')(env)
+  {NestTemperatureActionProvider, NestHVACModeActionProvider} = require('./predicates_and_actions/thermostat-actions')(env)
+  NestHomeAwayPredicateProvider = require('./predicates_and_actions/home-away-predicates')(env)
+  {NestPresence,NestHomeAwayToggle} = require('./devices/nest-home-away')(env)
 
   class NestPlugin extends env.plugins.Plugin
     init: (app, @framework, @config) =>
@@ -23,8 +24,27 @@ module.exports = (env) ->
       }
       @framework.deviceManager.registerDeviceClass "NestPresence", {
         configDef: deviceConfigDef.NestPresence,
-        createCallback: (config) => new NestPresence(config, @)
+        createCallback: @callBackHandler("NestPresence", NestPresence)
+        prepareConfig: ((config) =>
+          for dev in @framework.deviceManager.devicesConfig when dev.class in ['NestHomeAwayToggle', 'NestPresence']
+            if dev.structure_id is config.structure_id
+              throw new Error "#{dev.class} device already exists with same structure_id." unless config.id is dev.id
+          config
+        )
       }
+      @framework.deviceManager.registerDeviceClass "NestHomeAwayToggle", {
+        configDef: deviceConfigDef.NestHomeAwayToggle,
+        createCallback: @callBackHandler("NestHomeAwayToggle", NestHomeAwayToggle)
+        prepareConfig: ((config) =>
+          for dev in @framework.deviceManager.devicesConfig when dev.class in ['NestHomeAwayToggle', 'NestPresence']
+            if dev.structure_id is config.structure_id
+              throw new Error "#{dev.class} device already exists with same structure_id."  unless config.id is dev.id
+          config
+
+        )
+
+      }
+      @framework.ruleManager.addPredicateProvider(new NestHomeAwayPredicateProvider(@framework))
       @framework.ruleManager.addActionProvider(new NestTemperatureActionProvider(@framework,@))
       @framework.ruleManager.addActionProvider(new NestHVACModeActionProvider(@framework,@))
       @framework.deviceManager.on "discover", @discover
@@ -32,6 +52,9 @@ module.exports = (env) ->
       @nestApi = @connect(@config).catch((error) ->
         env.logger.error("Error in connecting Firebase Socket: #{error}")
       )
+
+      @framework.on "after init", @afterInit
+
 
     callBackHandler: (className, classType) =>
       return (config, lastState) =>
@@ -60,14 +83,27 @@ module.exports = (env) ->
     discoverStructures: (structures) =>
       return new Promise (resolve) =>
         env.logger.info "Checking for new Structures"
-        nestPresences = (dev.structure_id for dev in @framework.deviceManager.devicesConfig when dev.class is 'NestPresence')
-        for key, structure of structures.val() when key not in nestPresences
-          config =
-            class: "NestPresence"
-            id: "nest-presence-#{paramCase(structure.name)}"
-            name: structure.name
-            structure_id: structure.structure_id
-          @framework.deviceManager.discoveredDevice 'nest-presence', "#{config.name}", config
+        nestHomeAwayToggles = []
+        nestPresences = []
+        for dev in @framework.deviceManager.devicesConfig
+          nestHomeAwayToggles.push dev.structure_id if dev.class is 'NestHomeAwayToggle'
+          nestPresences.push dev.structure_id if dev.class is 'NestPresence'
+        for key, structure of structures.val()
+          if key not in nestPresences and key not in nestHomeAwayToggles
+            config =
+              class: "NestPresence"
+              id: "nest-presence-#{paramCase(structure.name)}"
+              name: "Nest Home/Away - #{structure.name}"
+              structure_id: structure.structure_id
+            @framework.deviceManager.discoveredDevice 'nest-presence', "#{config.name}", config
+
+          if key not in nestPresences and key not in nestHomeAwayToggles
+            config =
+              class: "NestHomeAwayToggle"
+              id: "nest-state-toggle-#{paramCase(structure.name)}"
+              name: "Nest Home/Away - #{structure.name}"
+              structure_id: structure.structure_id
+            @framework.deviceManager.discoveredDevice 'nest-state-toggle', "#{config.name}", config
         return resolve()
 
     discoverThermostats: (thermostats) =>
@@ -78,7 +114,7 @@ module.exports = (env) ->
           config =
             class: "NestThermostat"
             id: "nest-thermostat-#{paramCase(thermostat.name)}"
-            name: thermostat.name
+            name: "Nest Thermostat - #{thermostat.name}"
             device_id: thermostat.device_id
             temp_scale: thermostat.temperature_scale
             show_temp_scale: no
@@ -89,6 +125,14 @@ module.exports = (env) ->
       return new Promise (resolve) =>
         ref.once 'value', (snapshot) =>
           return resolve(snapshot)
+
+    afterInit: =>
+      mobileFrontend = @framework.pluginManager.getPlugin 'mobile-frontend'
+      if mobileFrontend?
+        mobileFrontend.registerAssetFile 'js', "pimatic-nest/app/nest-home-away-toggle.coffee"
+        mobileFrontend.registerAssetFile 'html', "pimatic-nest/app/nest-home-away-toggle.jade"
+      else
+        env.logger.warn "mobile-frontend not loaded, no gui will be available"
 
   nestPlugin = new NestPlugin
 
