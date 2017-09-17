@@ -74,17 +74,8 @@ module.exports = (env) ->
     setHVACModeToHeatCool: -> @changeHVACModeTo("heat-cool")
     setHVACModeToOff: ->      @changeHVACModeTo("off")
     changeHVACModeTo: (hvac_mode) =>
-      if hvac_mode not in ["heat-cool", "heat", "cool", "off"]
-        throw new Error("Invalid hvac_mode: #{hvac_mode}")
-      else if hvac_mode is 'eco'
-        throw new Error("Setting hvac_mode to eco is not allowed")
-      else if hvac_mode is 'heat' and @thermState.can_heat is no
-        throw new Error("HVAC unit cannot heat")
-      else if hvac_mode is 'cool' and @thermState.can_cool is no
-        throw new Error("HVAC unit cannot cool")
-      else if hvac_mode is 'heat-cool'
-        throw new Error("HVAC unit cannot heat and cool") unless @thermState.can_heat is yes and @thermState.can_cool is yes
-      else @_sendNestCommand("hvac_mode", hvac_mode)
+      @_isValidHVACMode(hvac_mode)
+      @_sendNestCommand("hvac_mode", hvac_mode)
 
     decrementTargetTemp: -> @changeTargetTempTo("-1")
     incrementTargetTemp: -> @changeTargetTempTo("+1")
@@ -113,6 +104,7 @@ module.exports = (env) ->
       @_sendNestCommand(attrName, newTemp)
 
     _sendNestCommand: (attrName, value) =>
+      console.log 'sending'
       return unless @_isOkToSend(attrName, value)
       return new Promise (resolve, reject) =>
         @thermostat.child(@_getNestName(attrName)).set value, (error) =>
@@ -144,11 +136,24 @@ module.exports = (env) ->
           when "+1" then @thermState[tempAttr] + @unitChange
           else parseFloat(newTemp)
 
+    _isValidHVACMode: (hvac_mode) =>
+      if hvac_mode is 'eco'
+        throw new Error("Setting hvac_mode to eco is not allowed")
+      else if hvac_mode not in ["heat-cool", "heat", "cool", "off"]
+        throw new Error("Invalid hvac_mode: #{hvac_mode}")
+      else if hvac_mode is 'heat' and @thermState.can_heat is no
+        throw new Error("HVAC unit cannot heat")
+      else if hvac_mode is 'cool' and @thermState.can_cool is no
+        throw new Error("HVAC unit cannot cool")
+      else if hvac_mode is 'heat-cool'
+        throw new Error("HVAC unit cannot heat and cool") unless @thermState.can_heat is yes and @thermState.can_cool is yes
+      else return yes
+
     _isValidTemp: (temp) ->
       if @thermState.locked_temp_min <= temp <= @thermState.locked_temp_max
         return yes
       else
-        throw new Error "#{temp} is outside valid range of #{@thermState.locked_temp_min}-#{@thermState.locked_temp_max}."
+        throw new Error "#{temp}° is outside valid range of #{@thermState.locked_temp_min}°-#{@thermState.locked_temp_max}°"
 
     _isHVACModeOk: (attr) ->
       if @thermState.hvac_mode is 'eco' or
@@ -179,11 +184,9 @@ module.exports = (env) ->
         return nestAttr
       else return null
 
-
     destroy: () ->
       clearTimeout(@unBlockTimeout) if @unBlockTimeout?
-      if @thermostatUpdates?
-        @thermostat.ref().off 'child_changed', @thermostatUpdates
+      @thermostat.ref().off 'child_changed', @thermostatUpdates if @thermostatUpdates?
       super()
 
   return NestThermostat

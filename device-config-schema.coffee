@@ -1,6 +1,6 @@
 module.exports =
   title: "pimatic-nest device config schemas"
-  NestPresence:
+  NestHomeAwayPresence:
     title: "Nest Home/Away Status"
     type: "object"
     properties:

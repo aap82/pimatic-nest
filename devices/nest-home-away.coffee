@@ -2,7 +2,7 @@ module.exports = (env) ->
   Promise = env.require 'bluebird'
   assert = env.require 'cassert'
 
-  class NestPresence extends env.devices.PresenceSensor
+  class NestHomeAwayPresence extends env.devices.PresenceSensor
     constructor: (@config, @plugin, lastState) ->
       @id = @config.id
       @name = @config.name
@@ -125,6 +125,6 @@ module.exports = (env) ->
       super()
 
   return {
-    NestPresence
+    NestHomeAwayPresence
     NestHomeAwayToggle
   }

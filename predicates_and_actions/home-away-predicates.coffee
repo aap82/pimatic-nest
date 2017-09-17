@@ -8,7 +8,6 @@ module.exports = (env) ->
       @dependOnDevice(@device)
 
     setup: ->
-      console.log 'setup'
       @nestStateListener = ((s)  => @emit 'change', (s is @nestState))
       @device.on "nestState", @nestStateListener
       super()
@@ -28,7 +27,6 @@ module.exports = (env) ->
 
     constructor: (@framework) ->
     parsePredicate: (input, context) ->
-
       device = null
       nestState = null
       match = null

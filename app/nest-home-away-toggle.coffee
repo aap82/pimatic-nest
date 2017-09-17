@@ -11,7 +11,6 @@ $(document).on 'templateinit', (event) ->
       @nestState = ko.observable(nestStateAttribute.value())
       @isBlocked = ko.observable(if isBlockedAttribute.value()? then yes else no)
 
-
       nestStateAttribute.value.subscribe((newState) =>
         @_restoringState = true
         @nestState(newState)
@@ -48,7 +47,6 @@ $(document).on 'templateinit', (event) ->
         return
       pimatic.try => @toggleEle.flipswitch('disable')
       deviceAction = (if @nestState() is 'home' then 'setNestStateToHome' else 'setNestStateToAway')
-
       doIt = (
         confirm __("""
           Do you really want set Nest to %s #{@nestState()}?
