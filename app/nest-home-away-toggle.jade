@@ -1,0 +1,10 @@
+script#nesthomeawaytoggle-template(type='text/template')
+  li.sortable.switch-device.no-header
+    label.device-label(data-bind="text: name, tooltip: $data.labelTooltipHtml")
+
+    select.switch(
+      data-bind="attr: { id: nestId }, value: nestState")
+      option(value="away")=__('Away')
+      option(value="home")=__('Home')
+
+    span.error(data-bind="text: ($data.error() ? $data.error() : '') ")
